@@ -1,0 +1,19 @@
+target_buy = 6000.0
+
+[[funds]]
+symbol = "BND"
+shares = 100
+price = 85.40
+target_proportion = 0.15
+
+[[funds]]
+symbol = "VTI"
+shares =  200
+price = 216.3
+target_proportion = 0.70
+
+[[funds]]
+symbol = "VXUS"
+shares =  100
+price = 65.66
+target_proportion = 0.15

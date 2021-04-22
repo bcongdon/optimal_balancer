@@ -1,0 +1,12 @@
+[package]
+name = "index_fund_buyer"
+version = "0.1.0"
+authors = ["Benjamin <ben@congdon.dev>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+z3 = {version="0.10.0", features = ["static-link-z3"]}
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.5"
