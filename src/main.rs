@@ -1,5 +1,9 @@
+#[macro_use]
+extern crate prettytable;
+
 use anyhow::{anyhow, bail, Result};
 use clap::{AppSettings, Clap};
+use prettytable::Table;
 use serde::Deserialize;
 use yahoo_finance::history;
 use z3::ast::{self, Real};
@@ -156,6 +160,8 @@ async fn main() -> Result<()> {
         construct_model(&ctx, &funds, target_buy).ok_or(anyhow!("evaluating model failed"))?;
 
     println!("Optimal purchasing strategy:");
+    let mut table = Table::new();
+    table.add_row(row![b->"Fund", b->"Shares to Buy", b->"Buy Amt", b->"New Proportion"]);
     let mut total = 0.0;
     for f in funds {
         let shares = model
@@ -166,15 +172,15 @@ async fn main() -> Result<()> {
         let new_proportion = model
             .new_proportion(&f)
             .ok_or(anyhow!("unable to get new proportion for {}", f.symbol))?;
-        println!(
-            "{}:\t{} shares\t${:.2}\t{:.2}%",
-            f.symbol,
-            shares,
-            purchase,
-            new_proportion * 100.0
-        );
+        table.add_row(row![
+            bc->f.symbol,
+            r->shares,
+            r->format!("${:.2}", purchase),
+            r->format!("{:.2}%", new_proportion * 100.0),
+        ]);
     }
-    println!("\nTotal purchase:\t\t${:.2}", total);
+    table.printstd();
+    println!("\nTotal purchase:\t${:.2}", total);
 
     Ok(())
 }
