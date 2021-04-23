@@ -1,3 +1,4 @@
+use anyhow::{anyhow, bail, Result};
 use clap::{AppSettings, Clap};
 use serde::Deserialize;
 use z3::ast::{self, Real};
@@ -30,20 +31,21 @@ fn f64_to_real(ctx: &Context, val: f64) -> Real {
     ast::Real::from_real_str(ctx, &format!("{:.3}", val), "1").unwrap()
 }
 
-fn main() {
+fn main() -> Result<()> {
     let opts: Opts = Opts::parse();
 
-    let config_str = std::fs::read_to_string(opts.config).expect("config file");
+    let config_str = std::fs::read_to_string(opts.config)?;
 
-    let config: Config = toml::from_str(&config_str).unwrap();
+    let config: Config = toml::from_str(&config_str)?;
     let funds = config.funds;
 
     let fund_proportion_sum: f64 = funds.iter().map(|f| f.target_proportion).sum();
-    assert!(
-        (fund_proportion_sum - 1.0).abs() < 0.01,
-        "expected target_proportions to sum to 1, got {:}",
-        fund_proportion_sum
-    );
+    if (fund_proportion_sum - 1.0).abs() > 0.01 {
+        bail!(
+            "expected target_proportions to sum to 1.00, got {:}",
+            fund_proportion_sum
+        );
+    }
 
     let cfg = z3::Config::new();
     let ctx = Context::new(&cfg);
@@ -82,19 +84,22 @@ fn main() {
     optimize.minimize(&objective);
 
     optimize.check(&[]);
-    let model = optimize.get_model().unwrap();
+    let model = optimize
+        .get_model()
+        .ok_or(anyhow!("evaluating model failed"))?;
 
     println!("Optimal purchasing strategy:");
     let mut total = 0.0;
     for (f, v) in vars {
         let shares = model
             .eval(&v)
-            .expect("symbol should be in model")
-            .as_i64()
-            .expect("symbol should have a value");
+            .and_then(|s| s.as_i64())
+            .ok_or(anyhow!("failed to evaluate {}", f.symbol))?;
         let purchase = f.price * (shares as f64);
         total += purchase;
         println!("{}:\t{} shares\t${:.2}", f.symbol, shares, purchase,);
     }
     println!("\nTotal purchase:\t\t${:.2}", total);
+
+    Ok(())
 }
