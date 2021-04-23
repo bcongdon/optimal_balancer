@@ -1,6 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use clap::{AppSettings, Clap};
 use serde::Deserialize;
+use yahoo_finance::history;
 use z3::ast::{self, Real};
 use z3::Context;
 
@@ -10,6 +11,10 @@ use z3::Context;
 struct Opts {
     #[clap(short, long, default_value = "src/example.toml")]
     config: String,
+    #[clap(short, long)]
+    download_current_prices: bool,
+    #[clap(short, long)]
+    target_buy: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -80,7 +85,7 @@ fn construct_model<'a>(ctx: &'a Context, funds: &Vec<Fund>, target_buy: f64) -> 
     optimize.minimize(&objective);
 
     optimize.check(&[]);
-    optimize.get_model().map(|m| Model { ctx: ctx, model: m })
+    optimize.get_model().map(|model| Model { ctx, model })
 }
 
 struct Model<'a> {
@@ -96,17 +101,40 @@ impl<'a> Model<'a> {
     }
 }
 
-fn main() -> Result<()> {
+async fn fund_price(symbol: &str) -> Result<f64> {
+    let history = history::retrieve_interval(symbol, yahoo_finance::Interval::_1d).await?;
+    match history.first() {
+        Some(bar) => Ok(bar.close),
+        None => bail!("empty history returned for {}", symbol),
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
     let opts: Opts = Opts::parse();
 
     let config_str = std::fs::read_to_string(opts.config)?;
     let config: Config = toml::from_str(&config_str)?;
     config.validate()?;
-    let funds = config.funds;
+    let mut funds = config.funds;
+
+    if opts.download_current_prices {
+        println!("Downloading current fund prices...\nCurrent prices:");
+        for f in funds.iter_mut() {
+            f.price = fund_price(&f.symbol).await?;
+            println!("{}:\t${:.2}", f.symbol, f.price);
+        }
+        println!("");
+    }
+
+    let target_buy = match opts.target_buy {
+        Some(val) => val,
+        None => config.target_buy,
+    };
 
     let ctx = Context::new(&z3::Config::new());
-    let model = construct_model(&ctx, &funds, config.target_buy)
-        .ok_or(anyhow!("evaluating model failed"))?;
+    let model =
+        construct_model(&ctx, &funds, target_buy).ok_or(anyhow!("evaluating model failed"))?;
 
     println!("Optimal purchasing strategy:");
     let mut total = 0.0;
