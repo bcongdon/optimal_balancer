@@ -85,12 +85,17 @@ fn construct_model<'a>(ctx: &'a Context, funds: &Vec<Fund>, target_buy: f64) -> 
     optimize.minimize(&objective);
 
     optimize.check(&[]);
-    optimize.get_model().map(|model| Model { ctx, model })
+    optimize.get_model().map(|model| Model {
+        ctx,
+        model,
+        new_total,
+    })
 }
 
 struct Model<'a> {
     ctx: &'a z3::Context,
     model: z3::Model<'a>,
+    new_total: z3::ast::Real<'a>,
 }
 
 impl<'a> Model<'a> {
@@ -98,6 +103,20 @@ impl<'a> Model<'a> {
         self.model
             .eval(&ast::Int::new_const(self.ctx, fund.symbol.clone()))
             .and_then(|s| s.as_i64())
+    }
+
+    fn new_proportion(&self, fund: &Fund) -> Option<f64> {
+        match self.optimal_shares(&fund) {
+            Some(shares) => {
+                let new_total = self
+                    .model
+                    .eval(&self.new_total)
+                    .and_then(|total| total.as_real())
+                    .map(|(num, dem)| (num as f64) / (dem as f64));
+                new_total.map(|total| ((shares as f64) + fund.shares) * fund.price / total)
+            }
+            None => None,
+        }
     }
 }
 
@@ -144,7 +163,16 @@ async fn main() -> Result<()> {
             .ok_or(anyhow!("failed to evaluate {}", f.symbol))?;
         let purchase = f.price * (shares as f64);
         total += purchase;
-        println!("{}:\t{} shares\t${:.2}", f.symbol, shares, purchase);
+        let new_proportion = model
+            .new_proportion(&f)
+            .ok_or(anyhow!("unable to get new proportion for {}", f.symbol))?;
+        println!(
+            "{}:\t{} shares\t${:.2}\t{:.2}%",
+            f.symbol,
+            shares,
+            purchase,
+            new_proportion * 100.0
+        );
     }
     println!("\nTotal purchase:\t\t${:.2}", total);
 
