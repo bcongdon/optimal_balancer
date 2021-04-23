@@ -1,6 +1,15 @@
+use clap::{AppSettings, Clap};
 use serde::Deserialize;
 use z3::ast::{self, Real};
 use z3::Context;
+
+#[derive(Clap)]
+#[clap(version = "1.0")]
+#[clap(setting = AppSettings::ColoredHelp)]
+struct Opts {
+    #[clap(short, long, default_value = "src/example.toml")]
+    config: String,
+}
 
 #[derive(Deserialize)]
 struct Fund {
@@ -22,8 +31,11 @@ fn f64_to_real(ctx: &Context, val: f64) -> Real {
 }
 
 fn main() {
-    let config_str = include_str!("example.toml");
-    let config: Config = toml::from_str(config_str).unwrap();
+    let opts: Opts = Opts::parse();
+
+    let config_str = std::fs::read_to_string(opts.config).expect("config file");
+
+    let config: Config = toml::from_str(&config_str).unwrap();
     let funds = config.funds;
 
     let cfg = z3::Config::new();
