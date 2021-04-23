@@ -38,6 +38,13 @@ fn main() {
     let config: Config = toml::from_str(&config_str).unwrap();
     let funds = config.funds;
 
+    let fund_proportion_sum: f64 = funds.iter().map(|f| f.target_proportion).sum();
+    assert!(
+        (fund_proportion_sum - 1.0).abs() < 0.01,
+        "expected target_proportions to sum to 1, got {:}",
+        fund_proportion_sum
+    );
+
     let cfg = z3::Config::new();
     let ctx = Context::new(&cfg);
     let optimize = z3::Optimize::new(&ctx);
