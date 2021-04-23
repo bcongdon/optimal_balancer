@@ -44,11 +44,7 @@ fn f64_to_real(ctx: &Context, val: f64) -> Real {
     ast::Real::from_real_str(ctx, &format!("{:.3}", val), "1").unwrap()
 }
 
-fn construct_model<'a>(
-    ctx: &'a Context,
-    funds: &Vec<Fund>,
-    target_buy: f64,
-) -> Option<z3::Model<'a>> {
+fn construct_model<'a>(ctx: &'a Context, funds: &Vec<Fund>, target_buy: f64) -> Option<Model<'a>> {
     let optimize = z3::Optimize::new(&ctx);
 
     let mut vars = Vec::new();
@@ -84,7 +80,20 @@ fn construct_model<'a>(
     optimize.minimize(&objective);
 
     optimize.check(&[]);
-    optimize.get_model()
+    optimize.get_model().map(|m| Model { ctx: ctx, model: m })
+}
+
+struct Model<'a> {
+    ctx: &'a z3::Context,
+    model: z3::Model<'a>,
+}
+
+impl<'a> Model<'a> {
+    fn optimal_shares(&self, fund: &Fund) -> Option<i64> {
+        self.model
+            .eval(&ast::Int::new_const(self.ctx, fund.symbol.clone()))
+            .and_then(|s| s.as_i64())
+    }
 }
 
 fn main() -> Result<()> {
@@ -96,7 +105,6 @@ fn main() -> Result<()> {
     let funds = config.funds;
 
     let ctx = Context::new(&z3::Config::new());
-
     let model = construct_model(&ctx, &funds, config.target_buy)
         .ok_or(anyhow!("evaluating model failed"))?;
 
@@ -104,12 +112,11 @@ fn main() -> Result<()> {
     let mut total = 0.0;
     for f in funds {
         let shares = model
-            .eval(&ast::Int::new_const(&ctx, f.symbol.clone()))
-            .and_then(|s| s.as_i64())
+            .optimal_shares(&f)
             .ok_or(anyhow!("failed to evaluate {}", f.symbol))?;
         let purchase = f.price * (shares as f64);
         total += purchase;
-        println!("{}:\t{} shares\t${:.2}", f.symbol, shares, purchase,);
+        println!("{}:\t{} shares\t${:.2}", f.symbol, shares, purchase);
     }
     println!("\nTotal purchase:\t\t${:.2}", total);
 
