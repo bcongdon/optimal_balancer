@@ -2,6 +2,8 @@
 
 A simple tool for calculating the optimal number of shares to buy to maintain a proportional portfolio.
 
+The tool takes into account the current price of each fund, the number of shares of each fund already in the portfolio, and the desired target proportion of each fund. From that information, it calculates the optimal number of shares of each fund to buy to get closest to the desired target proportion for the portfolio, using a "buy only" strategy.
+
 ## Usage
 
 ```
@@ -54,3 +56,12 @@ shares =  100
 price = 65.66
 target_proportion = 0.15
 ```
+
+**Notes:**
+
+- You can omit including the `price` for each fund, and pass the `-d` flag to have price be downloaded at runtime (uses yahoo-finance data).
+- The sum of `target_proportion`s for all sums in the config should be 1.
+
+## Attribution
+
+Uses the excellent [z3](https://docs.rs/crate/z3/) crate for calculating the optimal strategy.
