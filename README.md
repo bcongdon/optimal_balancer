@@ -4,6 +4,12 @@ A simple tool for calculating the optimal number of shares to buy to maintain a 
 
 The tool takes into account the current price of each fund, the number of shares of each fund already in the portfolio, and the desired target proportion of each fund. From that information, it calculates the optimal number of shares of each fund to buy to get closest to the desired target proportion for the portfolio, using a "buy only" strategy.
 
+## Installation
+
+```sh
+$ cargo install --git https://github.com/bcongdon/optimal_balancer --branch main
+```
+
 ## Usage
 
 ```
