@@ -13,7 +13,7 @@ use z3::Context;
 #[clap(version = "1.0")]
 #[clap(setting = AppSettings::ColoredHelp)]
 struct Opts {
-    #[clap(short, long, default_value = "src/example.toml")]
+    #[clap(short, long)]
     config: String,
     #[clap(short, long)]
     download_current_prices: bool,
