@@ -1,8 +1,33 @@
 # optimal_balancer
 
-A simple tool for calculating the optimal number of shares to buy to maintain a proportional portfolio
+A simple tool for calculating the optimal number of shares to buy to maintain a proportional portfolio.
 
 ## Usage
+
+```
+optimal_balancer 1.0
+
+USAGE:
+    optimal_balancer [FLAGS] [OPTIONS] --config <config>
+
+FLAGS:
+    -d, --download-current-prices
+    -h, --help                       Prints help information
+    -V, --version                    Prints version information
+
+OPTIONS:
+    -c, --config <config>
+    -t, --target-buy <target-buy>
+```
+
+### Examples
+
+```sh
+$ optimal_balancer --config path/to/config
+
+# Download the current price for ticker symbols at runtime.
+$ optimal_balancer --config path/to/config --download-current-prices
+```
 
 ### Config File Format
 

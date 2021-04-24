@@ -24,6 +24,7 @@ struct Opts {
 #[derive(Deserialize)]
 struct Fund {
     shares: f64,
+    #[serde(default)]
     price: f64,
     symbol: String,
     target_proportion: f64,
@@ -43,6 +44,11 @@ impl Config {
                 "expected target_proportions to sum to 1.00, got {:}",
                 fund_proportion_sum
             );
+        }
+        for f in self.funds.iter() {
+            if f.price.is_sign_negative() || f.price == 0f64 {
+                bail!("price for {} is not positive", f.symbol);
+            }
         }
         Ok(())
     }
@@ -111,16 +117,18 @@ impl<'a> Model<'a> {
 
     fn new_proportion(&self, fund: &Fund) -> Option<f64> {
         match self.optimal_shares(&fund) {
-            Some(shares) => {
-                let new_total = self
-                    .model
-                    .eval(&self.new_total)
-                    .and_then(|total| total.as_real())
-                    .map(|(num, dem)| (num as f64) / (dem as f64));
-                new_total.map(|total| ((shares as f64) + fund.shares) * fund.price / total)
-            }
+            Some(shares) => self
+                .new_portfolio_total()
+                .map(|total| ((shares as f64) + fund.shares) * fund.price / total),
             None => None,
         }
+    }
+
+    fn new_portfolio_total(&self) -> Option<f64> {
+        self.model
+            .eval(&self.new_total)
+            .and_then(|total| total.as_real())
+            .map(|(num, dem)| (num as f64) / (dem as f64))
     }
 }
 
@@ -137,18 +145,19 @@ async fn main() -> Result<()> {
     let opts: Opts = Opts::parse();
 
     let config_str = std::fs::read_to_string(opts.config)?;
-    let config: Config = toml::from_str(&config_str)?;
-    config.validate()?;
-    let mut funds = config.funds;
+    let mut config: Config = toml::from_str(&config_str)?;
 
     if opts.download_current_prices {
         println!("Downloading current fund prices...\nCurrent prices:");
-        for f in funds.iter_mut() {
+        for f in config.funds.iter_mut() {
             f.price = fund_price(&f.symbol).await?;
             println!("{}:\t${:.2}", f.symbol, f.price);
         }
         println!("");
     }
+
+    config.validate()?;
+    let funds = config.funds;
 
     let target_buy = match opts.target_buy {
         Some(val) => val,
@@ -180,7 +189,11 @@ async fn main() -> Result<()> {
         ]);
     }
     table.printstd();
-    println!("\nTotal purchase:\t${:.2}", total);
+    println!("\nTotal purchase:\t\t${:.2}", total);
+    println!(
+        "New portfolio total: \t${:.2}",
+        model.new_portfolio_total().unwrap()
+    );
 
     Ok(())
 }

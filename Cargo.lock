@@ -581,20 +581,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "index_fund_buyer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "prettytable-rs",
- "serde",
- "tokio",
- "toml",
- "yahoo-finance",
- "z3",
-]
-
-[[package]]
 name = "indexmap"
 version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -854,6 +840,20 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "optimal_balancer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "prettytable-rs",
+ "serde",
+ "tokio",
+ "toml",
+ "yahoo-finance",
+ "z3",
 ]
 
 [[package]]

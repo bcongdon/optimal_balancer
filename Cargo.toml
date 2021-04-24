@@ -1,5 +1,5 @@
 [package]
-name = "index_fund_buyer"
+name = "optimal_balancer"
 version = "0.1.0"
 authors = ["Benjamin <ben@congdon.dev>"]
 edition = "2018"
