@@ -66,7 +66,7 @@ target_proportion = 0.15
 **Notes:**
 
 - You can omit including the `price` for each fund, and pass the `-d` flag to have price be downloaded at runtime (uses yahoo-finance data).
-- The sum of `target_proportion`s for all sums in the config should be 1.
+- The sum of `target_proportion`s for all funds in the config should be 1.
 
 ## Attribution
 
