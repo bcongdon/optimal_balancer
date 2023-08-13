@@ -111,7 +111,7 @@ struct Model<'a> {
 impl<'a> Model<'a> {
     fn optimal_shares(&self, fund: &Fund) -> Option<i64> {
         self.model
-            .eval(&ast::Int::new_const(self.ctx, fund.symbol.clone()))
+            .eval(&ast::Int::new_const(self.ctx, fund.symbol.clone()), false)
             .and_then(|s| s.as_i64())
     }
 
@@ -126,7 +126,7 @@ impl<'a> Model<'a> {
 
     fn new_portfolio_total(&self) -> Option<f64> {
         self.model
-            .eval(&self.new_total)
+            .eval(&self.new_total, false)
             .and_then(|total| total.as_real())
             .map(|(num, dem)| (num as f64) / (dem as f64))
     }
